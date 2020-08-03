@@ -6,9 +6,17 @@ from tensorflow.keras import layers
 import numpy as np
 import sys
 import os
-import time
-import pathlib
-import PIL
+import argparse
+
+
+### Get net type and size
+parser = argparse.ArgumentParser()
+parser.add_argument('type',  help='Net type, must be one of "std", "wide", "hierarchical" or "separable"')
+parser.add_argument('l', type=int, help='Net size parameter"')
+parser.add_argument('--focus', help='Add focus layer', action="store_true")
+
+
+args = parser.parse_args()
 
 
 IMG_SIZE = 32
@@ -20,24 +28,6 @@ n_labels = 10
 train_images, valid_images = train_images / 255.0, valid_images / 255.0
 training_data = (train_images, train_labels)
 valid_data = (valid_images, valid_labels)
-
-
-### Quick and dirty parameter handling
-net_type = ""
-l=1
-focus = False
-try:
-  print(sys.argv)
-  net_type = sys.argv[1]
-  print(net_type)
-  l = int(sys.argv[2])
-  if len(sys.argv)>3 and sys.argv[3] == "focus":
-    focus = True
-except:
-  print("Provide net type, size and subnet parameters")
-  print('Net type must be one of "std", "wide", "hierarchical" or "separable" ')
-  print('Append "focus" to include the focus layer')
-  exit(1)
 
 
 
@@ -108,35 +98,35 @@ def focus_layer(inputs, l=4*4, d_in=64, d_out=64, nv = 4):
 
 
 # Create the convolutional part
-if net_type == "std":
+if args.type == "std":
   print("std")
   def conv_layers(inputs):
-    x = conv2d_layer(inputs,   l, 2, 3)
-    x = conv2d_layer(x,      2*l, 2, 3)
-    x = conv2d_layer(x,      2*l, 2, 3)
+    x = conv2d_layer(inputs,   args.l, 2, 3)
+    x = conv2d_layer(x,      2*args.l, 2, 3)
+    x = conv2d_layer(x,      2*args.l, 2, 3)
     return x
 
-if net_type == "wide":
+if args.type == "wide":
   def conv_layers(inputs):
-    x = conv2d_layer(inputs,   l, 3, 5)
-    x = conv2d_layer(x,      2*l, 3, 5)
+    x = conv2d_layer(inputs,   args.l, 3, 5)
+    x = conv2d_layer(x,      2*args.l, 3, 5)
     return x
 
-if net_type == "hierarchical":
+if args.type == "hierarchical":
   def conv_layers(inputs):
-    x = conv2d_split_layer([inputs]*8,   l, 2, 3)
+    x = conv2d_split_layer([inputs]*8,   args.l, 2, 3)
     x = combine_2(x)
-    x = conv2d_split_layer(x,    4*l, 2, 3)
+    x = conv2d_split_layer(x,    4*args.l, 2, 3)
     x = combine_2(x)
-    x = conv2d_split_layer(x,    8*l, 2, 3)
+    x = conv2d_split_layer(x,    8*args.l, 2, 3)
     x = combine_all(x)
     return x
 
-if net_type == "separable":
+if args.type == "separable":
   def conv_layers(inputs):
-    x = separable_conv2d_layer(inputs,   l, 2, 3)
-    x = separable_conv2d_layer(x,      2*l, 2, 3)
-    x = separable_conv2d_layer(x,      2*l, 2, 3)
+    x = separable_conv2d_layer(inputs,   args.l, 2, 3)
+    x = separable_conv2d_layer(x,      2*args.l, 2, 3)
+    x = separable_conv2d_layer(x,      2*args.l, 2, 3)
     return x
 
 
@@ -147,8 +137,8 @@ def make_classifier(n_classes):
 
   x = conv_layers(inputs)
 
-  if(focus):
-    x = focus_layer(x, l=4*4, d_in=2*l, d_out = 2*l, nv=4)
+  if(args.focus):
+    x = focus_layer(x, l=4*4, d_in=2*args.l, d_out = 2*args.l, nv=4)
 
   x = layers.Flatten()(x)
   x = layers.Dense(256, activation='relu')(x)
