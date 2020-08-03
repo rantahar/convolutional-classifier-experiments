@@ -12,8 +12,8 @@ import argparse
 ### Get net type and size
 parser = argparse.ArgumentParser()
 parser.add_argument('type',  help='Net type, must be one of "std", "wide", "hierarchical" or "separable"')
-parser.add_argument('l', type=int, help='Net size parameter"')
-parser.add_argument('--focus', help='Add focus layer', action="store_true")
+parser.add_argument('l', type=int, help='Net size parameter')
+parser.add_argument('--focus', help='Add focus layer', action='store_true')
 
 
 args = parser.parse_args()
